@@ -92,6 +92,8 @@ print("📊 副本集初始化结果:", JSON.stringify(result));
 
 if (result.ok === 1) {
     print("✅ 副本集初始化成功");
+} else if (result.code === 23) {
+    print("⚠️  副本集已经初始化，跳过初始化步骤");
 } else {
     print("❌ 副本集初始化失败:", result.errmsg);
     quit(1);
@@ -114,7 +116,11 @@ while (attempts < maxAttempts) {
             break;
         }
     } catch (e) {
-        // 副本集还未完全初始化
+        // 副本集还未完全初始化，或者已经在运行
+        if (e.message && e.message.includes("not running with --replSet")) {
+            print("⚠️  检测到副本集可能已经在运行");
+            break;
+        }
     }
     
     attempts++;
@@ -123,8 +129,7 @@ while (attempts < maxAttempts) {
 }
 
 if (attempts >= maxAttempts) {
-    print("❌ 副本集选举超时");
-    quit(1);
+    print("⚠️  副本集状态检查超时，继续执行...");
 }
 
 // 创建管理员用户

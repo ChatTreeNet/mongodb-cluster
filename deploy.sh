@@ -256,6 +256,7 @@ case "${1:-}" in
         echo "  --help, -h     显示帮助信息"
         echo "  --env-only     仅创建环境配置文件"
         echo "  --no-init      不初始化副本集"
+        echo "  --reset        完全重置集群（删除所有数据）"
         echo ""
         exit 0
         ;;
@@ -264,7 +265,23 @@ case "${1:-}" in
         exit 0
         ;;
     --no-init)
-        main
+        check_dependencies
+        create_env_file
+        create_directories
+        check_ports
+        start_services
+        run_health_check
+        show_deployment_info
+        exit 0
+        ;;
+    --reset)
+        if [ -f "scripts/reset-cluster.sh" ]; then
+            chmod +x scripts/reset-cluster.sh
+            ./scripts/reset-cluster.sh --force
+        else
+            log_error "重置脚本不存在"
+            exit 1
+        fi
         exit 0
         ;;
     "")
