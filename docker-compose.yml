@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MongoDB Primary Node
   mongo-primary:
@@ -16,6 +14,7 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_PRIMARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --keyFile /etc/security/mongo-keyfile
     volumes:
       - mongo_primary_data:/data/db
       - mongo_primary_config:/data/configdb
@@ -59,6 +58,7 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --keyFile /etc/security/mongo-keyfile
     volumes:
       - mongo_secondary1_data:/data/db
       - mongo_secondary1_config:/data/configdb
@@ -105,6 +105,7 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --keyFile /etc/security/mongo-keyfile
     volumes:
       - mongo_secondary2_data:/data/db
       - mongo_secondary2_config:/data/configdb
@@ -190,13 +191,14 @@ services:
     depends_on:
       - mongo-primary
     command: >
-      sh -c "
-      echo '📊 MongoDB监控服务启动...'
-      while true; do
+      sh -c '
+      echo "📊 MongoDB监控服务启动..."
+      while true
+      do
         /scripts/health-check.sh
-        sleep ${HEALTH_CHECK_INTERVAL}
+        sleep $${HEALTH_CHECK_INTERVAL}
       done
-      "
+      '
     deploy:
       resources:
         limits:
