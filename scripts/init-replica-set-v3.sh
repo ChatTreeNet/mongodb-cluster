@@ -138,7 +138,7 @@ var adminPassword = "$MONGO_ROOT_PASSWORD";
 
 print("👤 创建管理员用户: " + adminUser);
 try {
-    use admin;
+    db = db.getSiblingDB('admin');
     db.createUser({
         user: adminUser,
         pwd: adminPassword,
