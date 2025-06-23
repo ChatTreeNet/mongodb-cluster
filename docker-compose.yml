@@ -22,6 +22,7 @@ services:
       - mongo_logs:/var/log/mongodb
       - ./backups:/backup
       - ./config/mongod.conf:/etc/mongod.conf:ro
+      - ./config/security/mongo-keyfile:/etc/security/mongo-keyfile:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -64,6 +65,7 @@ services:
       - mongo_logs_s1:/var/log/mongodb
       - ./backups:/backup
       - ./config/mongod.conf:/etc/mongod.conf:ro
+      - ./config/security/mongo-keyfile:/etc/security/mongo-keyfile:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -109,6 +111,7 @@ services:
       - mongo_logs_s2:/var/log/mongodb
       - ./backups:/backup
       - ./config/mongod.conf:/etc/mongod.conf:ro
+      - ./config/security/mongo-keyfile:/etc/security/mongo-keyfile:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
