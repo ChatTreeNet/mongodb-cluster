@@ -52,7 +52,7 @@ echo "✅ 所有MongoDB实例已启动"
 
 # 连接到主节点并初始化副本集
 echo "🔧 初始化副本集..."
-docker exec -i mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
+docker exec -i mongo-primary mongo <<EOF
 
 print("🚀 开始初始化副本集 $REPLICA_SET_NAME");
 
@@ -124,6 +124,27 @@ var status = rs.status();
 status.members.forEach(function(member) {
     print("  - " + member.name + ": " + member.stateStr + " (健康: " + member.health + ")");
 });
+
+// 创建管理员用户
+print("👤 创建管理员用户...");
+try {
+    use admin;
+    db.createUser({
+        user: "$MONGO_ROOT_USER",
+        pwd: "$MONGO_ROOT_PASSWORD",
+        roles: [
+            { role: "root", db: "admin" }
+        ]
+    });
+    print("✅ 管理员用户创建成功");
+} catch (e) {
+    if (e.code === 51003) {
+        print("⚠️  管理员用户已存在");
+    } else {
+        print("❌ 创建管理员用户失败:", e.message);
+        quit(1);
+    }
+}
 
 print("🎉 副本集初始化完成！");
 EOF
