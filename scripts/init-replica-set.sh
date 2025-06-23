@@ -31,19 +31,19 @@ echo "  - 只读用户: $MONGO_READONLY_USER"
 # 等待所有MongoDB实例启动
 echo "⏳ 等待 MongoDB 实例启动..."
 echo "   检查主节点..."
-while ! mongo --host mongo-primary:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+while ! docker exec mongo-primary mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
     echo "   主节点未就绪，等待5秒..."
     sleep 5
 done
 
 echo "   检查副本节点1..."
-while ! mongo --host mongo-secondary1:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+while ! docker exec mongo-secondary1 mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
     echo "   副本节点1未就绪，等待5秒..."
     sleep 5
 done
 
 echo "   检查副本节点2..."
-while ! mongo --host mongo-secondary2:27017 --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+while ! docker exec mongo-secondary2 mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
     echo "   副本节点2未就绪，等待5秒..."
     sleep 5
 done
@@ -52,7 +52,7 @@ echo "✅ 所有MongoDB实例已启动"
 
 # 连接到主节点并初始化副本集
 echo "🔧 初始化副本集..."
-mongo --host mongo-primary:27017 -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
+docker exec -i mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
 
 print("🚀 开始初始化副本集 $REPLICA_SET_NAME");
 
@@ -134,7 +134,7 @@ sleep 10
 
 # 创建应用数据库和用户
 echo "👤 创建应用用户和数据库..."
-mongo --host mongo-primary:27017 -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
+docker exec -i mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
 
 // 切换到应用数据库
 use $MONGO_APP_DATABASE;

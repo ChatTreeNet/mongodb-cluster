@@ -58,7 +58,7 @@ check_replica_status() {
     
     # 检查哪个节点是主节点
     for host in mongo-primary mongo-secondary1 mongo-secondary2; do
-        if mongo --host "$host:27017" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
+        if docker exec mongo-primary mongo --host "$host:27017" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
             try {
                 var status = rs.status();
                 var isSecondary = db.isMaster().secondary;
@@ -83,7 +83,7 @@ check_replica_status() {
 # 获取数据库列表
 get_databases() {
     local host=$1
-    mongo --host "$host:27017" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
+    docker exec mongo-primary mongo --host "$host:27017" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
         db.adminCommand('listDatabases').databases.forEach(function(db) {
             if (db.name !== 'admin' && db.name !== 'local' && db.name !== 'config') {
                 print(db.name);

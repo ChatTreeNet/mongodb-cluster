@@ -61,11 +61,11 @@ check_mongo_node() {
     log_info "检查 $name ($host:$port)"
     
     # 基础连通性检查
-    if timeout 10 mongo --host "$host:$port" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+    if timeout 10 docker exec mongo-primary mongo --host "$host:$port" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
         log_success "$name 连接正常"
         
         # 获取详细状态信息
-        local node_info=$(mongo --host "$host:$port" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
+        local node_info=$(docker exec mongo-primary mongo --host "$host:$port" --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
             var status = db.adminCommand('serverStatus');
             var replStatus;
             try {
@@ -179,7 +179,7 @@ check_node_alerts() {
 check_replica_set_status() {
     log_info "检查副本集整体状态"
     
-    local replica_info=$(mongo --host mongo-primary:27017 --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
+    local replica_info=$(docker exec mongo-primary mongo --username "$MONGO_ROOT_USER" --password "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --quiet --eval "
         try {
             var status = rs.status();
             var config = rs.conf();
