@@ -16,11 +16,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_PRIMARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --logpath /var/log/mongodb/mongod.log
-      --logappend
-      --journalCompressor snappy
-      --wiredTigerCollectionBlockCompressor snappy
-      --wiredTigerIndexPrefixCompression true
     volumes:
       - mongo_primary_data:/data/db
       - mongo_primary_config:/data/configdb
@@ -63,11 +58,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --logpath /var/log/mongodb/mongod.log
-      --logappend
-      --journalCompressor snappy
-      --wiredTigerCollectionBlockCompressor snappy
-      --wiredTigerIndexPrefixCompression true
     volumes:
       - mongo_secondary1_data:/data/db
       - mongo_secondary1_config:/data/configdb
@@ -113,11 +103,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --logpath /var/log/mongodb/mongod.log
-      --logappend
-      --journalCompressor snappy
-      --wiredTigerCollectionBlockCompressor snappy
-      --wiredTigerIndexPrefixCompression true
     volumes:
       - mongo_secondary2_data:/data/db
       - mongo_secondary2_config:/data/configdb
