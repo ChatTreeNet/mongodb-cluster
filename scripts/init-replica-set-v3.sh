@@ -133,12 +133,15 @@ if (attempts >= maxAttempts) {
 }
 
 // 创建管理员用户
-print("👤 创建管理员用户...");
+var adminUser = "$MONGO_ROOT_USER";
+var adminPassword = "$MONGO_ROOT_PASSWORD";
+
+print("👤 创建管理员用户: " + adminUser);
 try {
     use admin;
     db.createUser({
-        user: '$MONGO_ROOT_USER',
-        pwd: '$MONGO_ROOT_PASSWORD',
+        user: adminUser,
+        pwd: adminPassword,
         roles: [
             { role: 'root', db: 'admin' }
         ]
