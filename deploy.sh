@@ -171,11 +171,15 @@ init_replica_set() {
     fi
     
     # 执行副本集初始化脚本
-    if [ -f "scripts/init-replica-set-v2.sh" ]; then
+    if [ -f "scripts/init-replica-set-v3.sh" ]; then
+        chmod +x scripts/init-replica-set-v3.sh
+        ./scripts/init-replica-set-v3.sh
+    elif [ -f "scripts/init-replica-set-v2.sh" ]; then
+        log_warning "使用V2初始化脚本，建议使用 init-replica-set-v3.sh"
         chmod +x scripts/init-replica-set-v2.sh
         ./scripts/init-replica-set-v2.sh
     elif [ -f "scripts/init-replica-set.sh" ]; then
-        log_warning "使用旧版初始化脚本，建议使用 init-replica-set-v2.sh"
+        log_warning "使用旧版初始化脚本，建议使用 init-replica-set-v3.sh"
         chmod +x scripts/init-replica-set.sh
         ./scripts/init-replica-set.sh
     else
