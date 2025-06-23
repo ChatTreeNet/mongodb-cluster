@@ -70,7 +70,7 @@ function ping_node() {
   local auth_flag=$3   # 1=带认证 0=不带认证
 
   if [[ $auth_flag -eq 1 ]]; then
-    if $MONGO_BIN "mongodb://${ROOT_USER}:${ROOT_PWD}@${host}/admin?retryWrites=false" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+    if $MONGO_BIN --host "$host" -u "$ROOT_USER" -p "$ROOT_PWD" --authenticationDatabase admin --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
       log_ok "${name} (${host}) ping 成功 (认证模式)"
     else
       log_error "${name} (${host}) ping 失败 (认证模式)"
@@ -104,7 +104,7 @@ ping_node "$HOST_SECONDARY2" "Secondary2" 1
 # (3) rs.status() 简要检测
 # --------------------------------------------------
 printf "\n(3) 副本集状态\n"
-OUTPUT=$(mongo "mongodb://${ROOT_USER}:${ROOT_PWD}@${HOST_PRIMARY}/admin?replicaSet=${REPLICA_SET}&retryWrites=false" --quiet --eval "try{var s=rs.status();printjson({set:s.set,primary:s.members.filter(m=>m.state===1)[0].name,health:s.members.map(m=>({name:m.name,health:m.health,state:m.stateStr}))});}catch(e){printjson({error:e.message});}") || true
+OUTPUT=$($MONGO_BIN --host "$HOST_PRIMARY" -u "$ROOT_USER" -p "$ROOT_PWD" --authenticationDatabase admin --quiet --eval "try{var s=rs.status();printjson({set:s.set,primary:s.members.filter(function(m){return m.state===1;})[0].name,health:s.members.map(function(m){return {name:m.name,health:m.health,state:m.stateStr};})});}catch(e){printjson({error:e.message});}") || true
 
 if echo "$OUTPUT" | grep -q '"error"'; then
   log_error "rs.status 查询失败: $OUTPUT"
