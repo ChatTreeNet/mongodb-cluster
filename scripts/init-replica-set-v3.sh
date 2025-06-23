@@ -134,11 +134,14 @@ if (attempts >= maxAttempts) {
 
 // 创建管理员用户
 print("👤 创建管理员用户...");
+var adminUser = "$MONGO_ROOT_USER";
+var adminPassword = "$MONGO_ROOT_PASSWORD";
+
 try {
     use admin;
     db.createUser({
-        user: "$MONGO_ROOT_USER",
-        pwd: "$MONGO_ROOT_PASSWORD",
+        user: adminUser,
+        pwd: adminPassword,
         roles: [
             { role: "root", db: "admin" }
         ]
@@ -149,7 +152,7 @@ try {
         print("⚠️  管理员用户已存在");
     } else {
         print("❌ 创建管理员用户失败:", e.message);
-        quit(1);
+        // 不要退出，继续执行
     }
 }
 
@@ -181,54 +184,61 @@ echo "✅ 认证模式已启用"
 echo "👤 阶段4: 创建应用用户和数据库..."
 docker exec -i mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
 
-// 切换到应用数据库
-use $MONGO_APP_DATABASE;
+// 定义变量
+var appDatabase = "$MONGO_APP_DATABASE";
+var appUser = "$MONGO_APP_USER";
+var appPassword = "$MONGO_APP_PASSWORD";
+var readonlyUser = "$MONGO_READONLY_USER";
+var readonlyPassword = "$MONGO_READONLY_PASSWORD";
 
-print("📝 创建应用用户: $MONGO_APP_USER");
+// 切换到应用数据库
+use(appDatabase);
+
+print("📝 创建应用用户: " + appUser);
 
 // 创建应用用户
 try {
     db.createUser({
-        user: "$MONGO_APP_USER",
-        pwd: "$MONGO_APP_PASSWORD",
+        user: appUser,
+        pwd: appPassword,
         roles: [
             {
                 role: "readWrite",
-                db: "$MONGO_APP_DATABASE"
+                db: appDatabase
             },
             {
                 role: "dbOwner",
-                db: "$MONGO_APP_DATABASE"
+                db: appDatabase
             }
         ]
     });
     print("✅ 应用用户创建成功");
 } catch (e) {
     if (e.code === 51003) {
-        print("⚠️  用户 $MONGO_APP_USER 已存在");
+        print("⚠️  用户 " + appUser + " 已存在");
     } else {
         print("❌ 创建应用用户失败:", e.message);
     }
 }
 
-print("📖 创建只读用户: $MONGO_READONLY_USER");
+print("📖 创建只读用户: " + readonlyUser);
 
 // 创建只读用户
 try {
     db.createUser({
-        user: "$MONGO_READONLY_USER",
-        pwd: "$MONGO_READONLY_PASSWORD",
+        user: readonlyUser,
+        pwd: readonlyPassword,
         roles: [
             {
                 role: "read",
-                db: "$MONGO_APP_DATABASE"
+                db: appDatabase
             }
         ]
     });
     print("✅ 只读用户创建成功");
 } catch (e) {
     if (e.code === 51003) {
-        print("⚠️  用户 $MONGO_READONLY_USER 已存在");
+        print("⚠️  用户 " + readonlyUser + " 已存在");
     } else {
         print("❌ 创建只读用户失败:", e.message);
     }
@@ -244,7 +254,7 @@ db.users.insertOne({
 });
 
 db.settings.insertOne({
-    appName: "$MONGO_APP_DATABASE",
+    appName: appDatabase,
     version: "1.0.0",
     initializedAt: new Date(),
     replicaSet: "$REPLICA_SET_NAME"
