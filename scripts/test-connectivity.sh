@@ -42,9 +42,19 @@ S1_PORT=${MONGO_SECONDARY1_PORT:-27018}
 S2_PORT=${MONGO_SECONDARY2_PORT:-27019}
 BIND_IP=${MONGO_BIND_IP:-127.0.0.1}
 
-HOST_PRIMARY="${BIND_IP}:${PRIMARY_PORT}"
-HOST_SECONDARY1="${BIND_IP}:${S1_PORT}"
-HOST_SECONDARY2="${BIND_IP}:${S2_PORT}"
+# 检测本机是否安装 mongo 客户端
+if command -v mongo >/dev/null 2>&1; then
+  MONGO_BIN="mongo"
+  HOST_PRIMARY="${BIND_IP}:${PRIMARY_PORT}"
+  HOST_SECONDARY1="${BIND_IP}:${S1_PORT}"
+  HOST_SECONDARY2="${BIND_IP}:${S2_PORT}"
+else
+  log_warn "未检测到本机 mongo 客户端，改用 docker exec mongo-primary mongo"
+  MONGO_BIN="docker exec mongo-primary mongo"
+  HOST_PRIMARY="mongo-primary:27017"
+  HOST_SECONDARY1="mongo-secondary1:27017"
+  HOST_SECONDARY2="mongo-secondary2:27017"
+fi
 
 printf "\n=============== MongoDB 集群连通性测试 ===============\n"
 log_info "副本集名称: $REPLICA_SET"
@@ -60,15 +70,17 @@ function ping_node() {
   local auth_flag=$3   # 1=带认证 0=不带认证
 
   if [[ $auth_flag -eq 1 ]]; then
-    mongo "mongodb://${ROOT_USER}:${ROOT_PWD}@${host}/admin?retryWrites=false" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1
+    if $MONGO_BIN "mongodb://${ROOT_USER}:${ROOT_PWD}@${host}/admin?retryWrites=false" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+      log_ok "${name} (${host}) ping 成功 (认证模式)"
+    else
+      log_error "${name} (${host}) ping 失败 (认证模式)"
+    fi
   else
-    mongo --host "$host" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1
-  fi
-
-  if [[ $? -eq 0 ]]; then
-    log_ok "${name} (${host}) ping 成功${auth_flag:+ (认证模式)}"
-  else
-    log_error "${name} (${host}) ping 失败${auth_flag:+ (认证模式)}"
+    if $MONGO_BIN --host "$host" --quiet --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+      log_ok "${name} (${host}) ping 成功"
+    else
+      log_error "${name} (${host}) ping 失败"
+    fi
   fi
 }
 
@@ -99,17 +111,5 @@ if echo "$OUTPUT" | grep -q '"error"'; then
 else
   log_ok "rs.status 正常: $OUTPUT"
 fi
-
-# 先在 bash 里把单引号转义掉
-ESC_PWD=${MONGO_ROOT_PASSWORD//\'/\'\\\'\'}
-
-docker exec -i mongo-primary mongo <<EOF
-db = db.getSiblingDB('admin');
-db.createUser({
-  user: '$MONGO_ROOT_USER',
-  pwd: '$ESC_PWD',           // 单引号包围，\$ 不会再被 bash 吞掉
-  roles: [ { role: 'root', db: 'admin' } ]
-});
-EOF
 
 printf "\n=============== 测试结束 ===============\n" 
