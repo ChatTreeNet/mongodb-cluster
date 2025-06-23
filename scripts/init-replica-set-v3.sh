@@ -4,6 +4,13 @@
 
 set -e
 
+# 载入环境变量 (.env)，确保密码等配置被使用
+if [ -f ".env" ]; then
+  set -a            # export 后续 source 的所有变量
+  source .env
+  set +a
+fi
+
 echo "🚀 开始初始化 MongoDB 副本集..."
 
 # 从环境变量或默认值获取配置

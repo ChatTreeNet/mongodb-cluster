@@ -49,6 +49,13 @@ docker container rm -f mongo-primary mongo-secondary1 mongo-secondary2 mongo-bac
 docker network rm mongodb-cluster_mongo-cluster 2>/dev/null || true
 
 echo "🚀 重新初始化集群..."
+# 确保环境变量被加载
+if [ -f .env ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 if [ -f "scripts/init-replica-set-v3.sh" ]; then
     ./scripts/init-replica-set-v3.sh
 else
