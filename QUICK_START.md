@@ -35,7 +35,7 @@ sed -i 's/CHANGE_THIS_APP_PASSWORD_2024/你的应用密码/' .env
 docker-compose up -d && sleep 30
 
 # 4. 初始化副本集  
-./scripts/init-replica-set.sh
+./scripts/init-replica-set-v3.sh
 
 # 5. 验证部署
 ./scripts/health-check.sh
@@ -74,11 +74,37 @@ docker exec mongo-primary mongo -u admin -p 密码 --authenticationDatabase admi
 ### 备份操作
 ```bash
 # 立即备份
-docker exec mongo-backup /scripts/backup.sh
+./scripts/backup.sh
 
 # 查看备份
 ls -la backups/
 ```
+
+### 云存储快速配置（腾讯云 COS）
+> 需要将备份文件同步到对象存储？只需 1 分钟完成配置。
+
+1. 打开 `.env`，找到 **存储桶备份配置** 区域，将以下键值修改为你的 COS 信息：
+
+```env
+ENABLE_BUCKET_BACKUP=true          # 开启存储桶备份
+BUCKET_TYPE=cos                    # 对象存储类型
+BUCKET_NAME=<你的Bucket名称>
+BUCKET_REGION=ap-shanghai          # 区域，例如华南: ap-guangzhou，华东: ap-shanghai
+BUCKET_ENDPOINT=https://cos.ap-shanghai.myqcloud.com  # 可留空自动推断
+BUCKET_ACCESS_KEY=<SecretId>
+BUCKET_SECRET_KEY=<SecretKey>
+BUCKET_PATH_PREFIX=mongodb-cluster # 备份在桶内的前缀
+BUCKET_USE_SSL=true
+BUCKET_FORCE_PATH_STYLE=false
+```
+
+2. 保存 `.env` 并执行一次备份验证：
+
+```bash
+./scripts/backup.sh   # 成功后脚本会提示"上传到 COS 成功"
+```
+
+3. 若使用 1Panel 计划任务，定时备份也会自动上传 COS。
 
 ## 🚨 常见问题
 
@@ -95,7 +121,7 @@ docker-compose logs mongo-primary
 ```bash
 # 等待更长时间再初始化
 sleep 60
-./scripts/init-replica-set.sh
+./scripts/init-replica-set-v3.sh
 ```
 
 ### 内存不足

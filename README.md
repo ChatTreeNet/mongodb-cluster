@@ -113,31 +113,31 @@ mongodb://readonly:readonly_password@localhost:27017/myapp?replicaSet=rs0
 
 ## 📦 备份管理
 
-### 自动备份
-- **计划**: 每天凌晨2点自动备份（支持1Panel计划任务管理⭐）
-- **保留**: 30天自动清理
-- **压缩**: 自动压缩备份文件
-- **1Panel集成**: 自动同步到1Panel备份系统
-- **存储桶备份**: 支持AWS S3、阿里云OSS、腾讯云COS、MinIO
-- **Web管理**: 通过1Panel界面启用/禁用和监控备份任务
+### 备份策略（无常驻容器）
+本项目已改用 **单脚本备份** 方案，删掉了 `mongo-backup` 容器。
 
-### 手动备份
-```bash
-# 立即执行备份
-docker exec mongo-backup /scripts/backup.sh
+1. **自动备份**  
+    在 1Panel 「计划任务」中新建 Cron（如每天 02:00）：
+    ```bash
+    cd /root/mongodb-cluster && ./scripts/backup.sh
+    ```
+    - `.env` 中的 `BACKUP_SCHEDULE` 保留给其它环境，可忽略。
+    - `scripts/backup.sh` 会：
+      1) 自动选择 secondary 进行 `mongodump`  
+      2) 根据 `.env` 的 `BACKUP_COMPRESS` 决定是否生成 `.tar.gz`  
+      3) 按 `BACKUP_RETENTION_DAYS` 清理旧文件  
+      4) 可选推送到 S3/OSS/COS/MinIO（参见 `BUCKET_BACKUP.md`）。
 
-# 查看备份日志
-docker exec mongo-backup tail -f /backup/backup.log
-```
+2. **手动备份**  
+    随时 SSH 执行：
+    ```bash
+    ./scripts/manual-backup.sh   # 或直接 ./scripts/backup.sh
+    ```
+    生成的备份位于 `./backups/YYYYMMDD_HHMMSS(.tar.gz)`。
 
-### 备份恢复
-```bash
-# 恢复示例 (请根据实际情况调整)
-mongorestore --host localhost:27017 \
-  --username admin --password your_password \
-  --authenticationDatabase admin \
-  --gzip /path/to/backup/directory
-```
+3. **查看备份日志**  
+    计划任务的 Stdout/Stderr 在 1Panel 前端可直接查看；
+    手动执行则输出到终端。
 
 ## 📊 监控和日志
 

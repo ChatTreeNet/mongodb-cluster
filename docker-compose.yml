@@ -149,42 +149,6 @@ services:
       retries: 3
       start_period: 40s
 
-  # MongoDB 备份服务
-  mongo-backup:
-    image: mongo:4.4
-    container_name: mongo-backup
-    restart: unless-stopped
-    volumes:
-      - ./backups:/backup
-      - ./scripts:/scripts
-    environment:
-      MONGO_ROOT_USER: ${MONGO_ROOT_USER}
-      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE}
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
-      BACKUP_COMPRESS: ${BACKUP_COMPRESS}
-      ONEPANEL_BACKUP_ENABLED: ${ONEPANEL_BACKUP_ENABLED}
-      ONEPANEL_BACKUP_PATH: ${ONEPANEL_BACKUP_PATH}
-      TZ: ${TZ}
-    networks:
-      - mongo-cluster
-    depends_on:
-      - mongo-primary
-      - mongo-secondary1
-      - mongo-secondary2
-    command: >
-      sh -c "
-      echo '🚀 MongoDB备份服务启动...'
-      apt-get update && apt-get install -y cron
-      echo '$$BACKUP_SCHEDULE /scripts/backup.sh >> /var/log/backup.log 2>&1' | crontab -
-      cron -f
-      "
-    deploy:
-      resources:
-        limits:
-          memory: 200M
-          cpus: '0.2'
-
   # 监控服务
   mongo-monitor:
     image: mongo:4.4
