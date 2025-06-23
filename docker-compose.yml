@@ -6,7 +6,7 @@ services:
     hostname: mongo-primary
     restart: unless-stopped
     ports:
-      - "${MONGO_BIND_IP}:${MONGO_PRIMARY_PORT}:27017"
+      - "0.0.0.0:${MONGO_PRIMARY_PORT}:27017"
     command: >
       sh -c "
       chmod 600 /etc/security/mongo-keyfile &&
@@ -54,7 +54,7 @@ services:
     hostname: mongo-secondary1
     restart: unless-stopped
     ports:
-      - "${MONGO_BIND_IP}:${MONGO_SECONDARY1_PORT}:27017"
+      - "0.0.0.0:${MONGO_SECONDARY1_PORT}:27017"
     command: >
       sh -c "
       chmod 600 /etc/security/mongo-keyfile &&
@@ -105,7 +105,7 @@ services:
     hostname: mongo-secondary2
     restart: unless-stopped
     ports:
-      - "${MONGO_BIND_IP}:${MONGO_SECONDARY2_PORT}:27017"
+      - "0.0.0.0:${MONGO_SECONDARY2_PORT}:27017"
     command: >
       sh -c "
       chmod 600 /etc/security/mongo-keyfile &&

@@ -29,6 +29,11 @@ mongodb-cluster/
 │   ├── backup.sh             # 自动备份脚本
 │   ├── health-check.sh       # 健康检查脚本
 │   └── 1panel-setup.sh       # 1Panel一键部署脚本
+│   ├── init-replica-set-v3.sh  # 副本集初始化 (当前版本)
+│   ├── backup.sh               # 自动/手动备份核心脚本
+│   ├── manual-backup.sh        # 手动触发备份包装脚本
+│   ├── health-check.sh         # 健康检查脚本
+│   └── 1panel-setup.sh         # 1Panel一键部署脚本
 ├── config/                   # 配置文件
 │   └── mongod.conf           # MongoDB配置
 ├── data/                     # 数据存储目录
@@ -91,7 +96,6 @@ cd mongodb-cluster
 | **主节点** | 1.2GB | 1.0核心 | 动态分配 |
 | **副本节点1** | 1.0GB | 0.8核心 | 动态分配 |
 | **副本节点2** | 1.0GB | 0.8核心 | 动态分配 |
-| **备份服务** | 200MB | 0.2核心 | 60GB |
 | **监控服务** | 100MB | 0.1核心 | 5GB |
 
 ## 🔐 连接字符串
