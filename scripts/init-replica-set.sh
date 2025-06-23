@@ -52,6 +52,28 @@ echo "✅ 所有MongoDB实例已启动"
 
 # 连接到主节点并初始化副本集
 echo "🔧 初始化副本集..."
+
+# 步骤1：临时重启主节点不带认证，用于初始化
+echo "📝 临时重启主节点以进行初始化..."
+docker exec mongo-primary mongod --shutdown --force || true
+sleep 3
+
+# 临时启动不带认证的mongod进程
+docker exec -d mongo-primary mongod --replSet ${REPLICA_SET_NAME} --bind_ip_all --wiredTigerCacheSizeGB=0.8 --oplogSize 512 --port 27017
+
+# 等待MongoDB重新启动
+echo "⏳ 等待MongoDB重新启动..."
+sleep 10
+
+# 检查MongoDB是否启动
+while ! docker exec mongo-primary mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+    echo "   等待MongoDB启动..."
+    sleep 3
+done
+
+echo "✅ MongoDB已重新启动"
+
+# 步骤2：无认证模式下初始化副本集和创建用户
 docker exec -i mongo-primary mongo <<EOF
 
 print("🚀 开始初始化副本集 $REPLICA_SET_NAME");
@@ -118,13 +140,6 @@ if (attempts >= maxAttempts) {
     quit(1);
 }
 
-// 显示副本集状态
-print("📊 副本集状态:");
-var status = rs.status();
-status.members.forEach(function(member) {
-    print("  - " + member.name + ": " + member.stateStr + " (健康: " + member.health + ")");
-});
-
 // 创建管理员用户
 print("👤 创建管理员用户...");
 try {
@@ -146,12 +161,31 @@ try {
     }
 }
 
+// 显示副本集状态
+print("📊 副本集状态:");
+var status = rs.status();
+status.members.forEach(function(member) {
+    print("  - " + member.name + ": " + member.stateStr + " (健康: " + member.health + ")");
+});
+
 print("🎉 副本集初始化完成！");
 EOF
 
-# 等待一段时间确保副本集稳定
-echo "⏳ 等待副本集稳定..."
-sleep 10
+# 步骤3：重新启动所有节点并启用认证
+echo "🔄 重新启动所有节点并启用认证..."
+docker-compose restart mongo-primary mongo-secondary1 mongo-secondary2
+
+# 等待服务重新启动
+echo "⏳ 等待服务重新启动..."
+sleep 15
+
+# 等待主节点启动
+while ! docker exec mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+    echo "   等待认证模式主节点启动..."
+    sleep 5
+done
+
+echo "✅ 认证模式下所有节点已启动"
 
 # 创建应用数据库和用户
 echo "👤 创建应用用户和数据库..."
