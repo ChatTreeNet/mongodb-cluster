@@ -1,8 +1,31 @@
 #!/bin/bash
-# MongoDB 副本集初始化脚本
-# 用法: ./init-replica-set.sh
+# MongoDB 副本集初始化脚本 V2 - 两阶段启动方式
+# 用法: ./init-replica-set-v2.sh
 
 set -e
+
+# 清理函数
+cleanup() {
+    local exit_code=$?
+    echo "🧹 清理临时文件..."
+    
+    # 恢复原始配置文件如果存在
+    if [ -f "docker-compose.yml.backup" ]; then
+        mv docker-compose.yml.backup docker-compose.yml
+        echo "✅ 已恢复原始配置文件"
+    fi
+    
+    # 如果脚本失败，显示错误信息
+    if [ $exit_code -ne 0 ]; then
+        echo "❌ 脚本执行失败，已恢复原始配置"
+        echo "💡 请检查错误信息并重试"
+    fi
+    
+    exit $exit_code
+}
+
+# 设置退出时的清理
+trap cleanup EXIT
 
 echo "🚀 开始初始化 MongoDB 副本集..."
 
@@ -16,48 +39,48 @@ MONGO_READONLY_USER=${MONGO_READONLY_USER:-readonly}
 MONGO_READONLY_PASSWORD=${MONGO_READONLY_PASSWORD:-readonly}
 REPLICA_SET_NAME=${REPLICA_SET_NAME:-rs0}
 
-# 验证必需的环境变量
-if [ -z "$MONGO_ROOT_PASSWORD" ] || [ "$MONGO_ROOT_PASSWORD" = "password" ]; then
-    echo "⚠️  警告: 使用默认密码不安全，请在.env文件中设置强密码"
-fi
-
 echo "📋 配置信息:"
 echo "  - 副本集名称: $REPLICA_SET_NAME"
 echo "  - 管理员用户: $MONGO_ROOT_USER"
-echo "  - 应用数据库: $MONGO_APP_DATABASE"
-echo "  - 应用用户: $MONGO_APP_USER"
-echo "  - 只读用户: $MONGO_READONLY_USER"
 
-# 等待所有MongoDB实例启动
+# 阶段1：停止现有服务并以无认证模式启动
+echo "🔄 阶段1: 以无认证模式启动MongoDB集群..."
+docker-compose down
+
+# 临时修改docker-compose.yml去掉认证选项
+cp docker-compose.yml docker-compose.yml.backup
+
+# 使用sed移除--auth和--keyFile选项
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    sed -i '' 's/--auth//g' docker-compose.yml
+    sed -i '' 's/--keyFile \/etc\/security\/mongo-keyfile//g' docker-compose.yml
+else
+    # Linux
+    sed -i 's/--auth//g' docker-compose.yml
+    sed -i 's/--keyFile \/etc\/security\/mongo-keyfile//g' docker-compose.yml
+fi
+
+# 启动无认证模式的服务
+docker-compose up -d mongo-primary mongo-secondary1 mongo-secondary2
+
+# 等待MongoDB实例启动
 echo "⏳ 等待 MongoDB 实例启动..."
-echo "   检查主节点..."
-while ! docker exec mongo-primary mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
-    echo "   主节点未就绪，等待5秒..."
-    sleep 5
-done
+sleep 15
 
-echo "   检查副本节点1..."
-while ! docker exec mongo-secondary1 mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
-    echo "   副本节点1未就绪，等待5秒..."
-    sleep 5
-done
-
-echo "   检查副本节点2..."
-while ! docker exec mongo-secondary2 mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
-    echo "   副本节点2未就绪，等待5秒..."
-    sleep 5
+# 检查所有实例
+for container in mongo-primary mongo-secondary1 mongo-secondary2; do
+    echo "   检查 $container..."
+    while ! docker exec $container mongo --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+        echo "   $container 未就绪，等待5秒..."
+        sleep 5
+    done
 done
 
 echo "✅ 所有MongoDB实例已启动"
 
-# 连接到主节点并初始化副本集
-echo "🔧 初始化副本集..."
-
-# 方法：使用localhost exception进行初始化
-# MongoDB允许从localhost进行无认证连接进行初始设置
-echo "📝 使用localhost exception进行初始化..."
-
-# 直接尝试初始化副本集
+# 阶段2：初始化副本集和创建用户
+echo "🔧 阶段2: 初始化副本集..."
 docker exec -i mongo-primary mongo <<EOF
 
 print("🚀 开始初始化副本集 $REPLICA_SET_NAME");
@@ -145,21 +168,31 @@ try {
     }
 }
 
-// 显示副本集状态
-print("📊 副本集状态:");
-var status = rs.status();
-status.members.forEach(function(member) {
-    print("  - " + member.name + ": " + member.stateStr + " (健康: " + member.health + ")");
-});
-
-print("🎉 副本集初始化完成！");
+print("🎉 副本集和用户初始化完成！");
 EOF
 
-# 等待一段时间确保副本集稳定
-echo "⏳ 等待副本集稳定..."
-sleep 10
+# 阶段3：恢复认证配置并重启
+echo "🔄 阶段3: 启用认证并重启服务..."
+# 恢复原始配置
+mv docker-compose.yml.backup docker-compose.yml
 
-# 创建应用数据库和用户
+# 重启服务以启用认证
+docker-compose down
+docker-compose up -d
+
+# 等待服务重新启动
+echo "⏳ 等待认证模式服务启动..."
+sleep 20
+
+# 等待主节点启动
+while ! docker exec mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+    echo "   等待认证模式主节点启动..."
+    sleep 5
+done
+
+echo "✅ 认证模式下所有节点已启动"
+
+# 阶段4：创建应用用户
 echo "👤 创建应用用户和数据库..."
 docker exec -i mongo-primary mongo -u "$MONGO_ROOT_USER" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin <<EOF
 
