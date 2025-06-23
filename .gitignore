@@ -1,0 +1,56 @@
+# 环境配置文件（包含密码，不应提交）
+.env
+
+# MongoDB 数据文件
+data/
+!data/.gitkeep
+
+# 日志文件
+logs/
+!logs/.gitkeep
+
+# 备份文件
+backups/
+!backups/.gitkeep
+
+# Docker 临时文件
+.docker/
+
+# SSL 证书文件
+ssl/
+*.pem
+*.key
+*.crt
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+.tmp/
+
+# 压缩文件
+*.tar.gz
+*.zip
+*.7z
+
+# 运行时文件
+*.pid
+*.lock
+
+# 监控和统计文件
+stats/
+monitoring/
+
+# 用户自定义配置
+local.env
+custom.yml 

@@ -1,0 +1,251 @@
+version: '3.8'
+
+services:
+  # MongoDB Primary Node
+  mongo-primary:
+    image: mongo:4.4
+    container_name: mongo-primary
+    hostname: mongo-primary
+    restart: unless-stopped
+    ports:
+      - "${MONGO_BIND_IP}:${MONGO_PRIMARY_PORT}:27017"
+    command: >
+      mongod 
+      --replSet ${REPLICA_SET_NAME}
+      --bind_ip_all
+      --auth
+      --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_PRIMARY}
+      --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
+      --logLevel ${LOG_LEVEL}
+      --logpath /var/log/mongodb/mongod.log
+      --logappend
+      --journalCompressor snappy
+      --wiredTigerCollectionBlockCompressor snappy
+      --wiredTigerIndexPrefixCompression true
+    volumes:
+      - mongo_primary_data:/data/db
+      - mongo_primary_config:/data/configdb
+      - mongo_logs:/var/log/mongodb
+      - ./backups:/backup
+      - ./config/mongod.conf:/etc/mongod.conf:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      TZ: ${TZ}
+    networks:
+      - mongo-cluster
+    deploy:
+      resources:
+        limits:
+          memory: ${PRIMARY_MEMORY_LIMIT}
+          cpus: '${PRIMARY_CPU_LIMIT}'
+        reservations:
+          memory: ${PRIMARY_MEMORY_RESERVATION}
+          cpus: '${PRIMARY_CPU_RESERVATION}'
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Secondary Node 1
+  mongo-secondary1:
+    image: mongo:4.4
+    container_name: mongo-secondary1
+    hostname: mongo-secondary1
+    restart: unless-stopped
+    ports:
+      - "${MONGO_BIND_IP}:${MONGO_SECONDARY1_PORT}:27017"
+    command: >
+      mongod 
+      --replSet ${REPLICA_SET_NAME}
+      --bind_ip_all
+      --auth
+      --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
+      --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
+      --logLevel ${LOG_LEVEL}
+      --logpath /var/log/mongodb/mongod.log
+      --logappend
+      --journalCompressor snappy
+      --wiredTigerCollectionBlockCompressor snappy
+      --wiredTigerIndexPrefixCompression true
+    volumes:
+      - mongo_secondary1_data:/data/db
+      - mongo_secondary1_config:/data/configdb
+      - mongo_logs_s1:/var/log/mongodb
+      - ./backups:/backup
+      - ./config/mongod.conf:/etc/mongod.conf:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      TZ: ${TZ}
+    networks:
+      - mongo-cluster
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${SECONDARY_MEMORY_LIMIT}
+          cpus: '${SECONDARY_CPU_LIMIT}'
+        reservations:
+          memory: ${SECONDARY_MEMORY_RESERVATION}
+          cpus: '${SECONDARY_CPU_RESERVATION}'
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Secondary Node 2
+  mongo-secondary2:
+    image: mongo:4.4
+    container_name: mongo-secondary2
+    hostname: mongo-secondary2
+    restart: unless-stopped
+    ports:
+      - "${MONGO_BIND_IP}:${MONGO_SECONDARY2_PORT}:27017"
+    command: >
+      mongod 
+      --replSet ${REPLICA_SET_NAME}
+      --bind_ip_all
+      --auth
+      --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
+      --oplogSize ${MONGO_OPLOG_SIZE_MB}
+      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
+      --logLevel ${LOG_LEVEL}
+      --logpath /var/log/mongodb/mongod.log
+      --logappend
+      --journalCompressor snappy
+      --wiredTigerCollectionBlockCompressor snappy
+      --wiredTigerIndexPrefixCompression true
+    volumes:
+      - mongo_secondary2_data:/data/db
+      - mongo_secondary2_config:/data/configdb
+      - mongo_logs_s2:/var/log/mongodb
+      - ./backups:/backup
+      - ./config/mongod.conf:/etc/mongod.conf:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      TZ: ${TZ}
+    networks:
+      - mongo-cluster
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${SECONDARY_MEMORY_LIMIT}
+          cpus: '${SECONDARY_CPU_LIMIT}'
+        reservations:
+          memory: ${SECONDARY_MEMORY_RESERVATION}
+          cpus: '${SECONDARY_CPU_RESERVATION}'
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB 备份服务
+  mongo-backup:
+    image: mongo:4.4
+    container_name: mongo-backup
+    restart: unless-stopped
+    volumes:
+      - ./backups:/backup
+      - ./scripts:/scripts
+    environment:
+      MONGO_ROOT_USER: ${MONGO_ROOT_USER}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS}
+      BACKUP_COMPRESS: ${BACKUP_COMPRESS}
+      ONEPANEL_BACKUP_ENABLED: ${ONEPANEL_BACKUP_ENABLED}
+      ONEPANEL_BACKUP_PATH: ${ONEPANEL_BACKUP_PATH}
+      TZ: ${TZ}
+    networks:
+      - mongo-cluster
+    depends_on:
+      - mongo-primary
+      - mongo-secondary1
+      - mongo-secondary2
+    command: >
+      sh -c "
+      echo '🚀 MongoDB备份服务启动...'
+      apt-get update && apt-get install -y cron
+      echo '$$BACKUP_SCHEDULE /scripts/backup.sh >> /var/log/backup.log 2>&1' | crontab -
+      cron -f
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+          cpus: '0.2'
+
+  # 监控服务
+  mongo-monitor:
+    image: mongo:4.4
+    container_name: mongo-monitor
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/scripts
+      - ./logs:/logs
+    environment:
+      MONGO_ROOT_USER: ${MONGO_ROOT_USER}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      HEALTH_CHECK_INTERVAL: ${HEALTH_CHECK_INTERVAL}
+      TZ: ${TZ}
+    networks:
+      - mongo-cluster
+    depends_on:
+      - mongo-primary
+    command: >
+      sh -c "
+      echo '📊 MongoDB监控服务启动...'
+      while true; do
+        /scripts/health-check.sh
+        sleep ${HEALTH_CHECK_INTERVAL}
+      done
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+          cpus: '0.1'
+
+# 数据卷
+volumes:
+  mongo_primary_data:
+    driver: local
+  mongo_primary_config:
+    driver: local
+  mongo_secondary1_data:
+    driver: local
+  mongo_secondary1_config:
+    driver: local
+  mongo_secondary2_data:
+    driver: local
+  mongo_secondary2_config:
+    driver: local
+  mongo_logs:
+    driver: local
+  mongo_logs_s1:
+    driver: local
+  mongo_logs_s2:
+    driver: local
+
+# 网络
+networks:
+  mongo-cluster:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
