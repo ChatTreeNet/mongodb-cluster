@@ -9,6 +9,16 @@
 
 set -e
 
+if [[ -f .env ]]; then
+  # 把 .env 里的键值对 export 到当前环境
+  set -a
+  source .env
+  set +a
+else
+  log_error ".env 文件不存在，无法加载连接参数"
+  exit 1
+fi
+
 COLOR_RED='\033[0;31m'
 COLOR_GREEN='\033[0;32m'
 COLOR_YELLOW='\033[1;33m'
@@ -23,14 +33,6 @@ log_error()   { echo -e "${COLOR_RED}[FAIL]${COLOR_RESET}  $1"; }
 # --------------------------------------------------
 # 加载环境变量
 # --------------------------------------------------
-if [[ -f .env ]]; then
-  # shellcheck disable=SC1091
-  source .env
-else
-  log_error ".env 文件不存在，无法加载连接参数"
-  exit 1
-fi
-
 REPLICA_SET=${REPLICA_SET_NAME:-rs0}
 ROOT_USER=${MONGO_ROOT_USER:-admin}
 ROOT_PWD=${MONGO_ROOT_PASSWORD:-password}
@@ -97,5 +99,17 @@ if echo "$OUTPUT" | grep -q '"error"'; then
 else
   log_ok "rs.status 正常: $OUTPUT"
 fi
+
+# 先在 bash 里把单引号转义掉
+ESC_PWD=${MONGO_ROOT_PASSWORD//\'/\'\\\'\'}
+
+docker exec -i mongo-primary mongo <<EOF
+db = db.getSiblingDB('admin');
+db.createUser({
+  user: '$MONGO_ROOT_USER',
+  pwd: '$ESC_PWD',           // 单引号包围，\$ 不会再被 bash 吞掉
+  roles: [ { role: 'root', db: 'admin' } ]
+});
+EOF
 
 printf "\n=============== 测试结束 ===============\n" 
