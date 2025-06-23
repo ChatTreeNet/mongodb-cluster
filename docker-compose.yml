@@ -16,8 +16,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_PRIMARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
-      --logLevel ${LOG_LEVEL}
       --logpath /var/log/mongodb/mongod.log
       --logappend
       --journalCompressor snappy
@@ -65,8 +63,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
-      --logLevel ${LOG_LEVEL}
       --logpath /var/log/mongodb/mongod.log
       --logappend
       --journalCompressor snappy
@@ -117,8 +113,6 @@ services:
       --auth
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
-      --slowOpThresholdMs ${SLOW_OP_THRESHOLD_MS}
-      --logLevel ${LOG_LEVEL}
       --logpath /var/log/mongodb/mongod.log
       --logappend
       --journalCompressor snappy
