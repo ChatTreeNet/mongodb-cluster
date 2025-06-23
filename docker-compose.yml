@@ -8,6 +8,9 @@ services:
     ports:
       - "${MONGO_BIND_IP}:${MONGO_PRIMARY_PORT}:27017"
     command: >
+      sh -c "
+      chmod 600 /etc/security/mongo-keyfile &&
+      chown mongodb:mongodb /etc/security/mongo-keyfile &&
       mongod 
       --replSet ${REPLICA_SET_NAME}
       --bind_ip_all
@@ -15,6 +18,7 @@ services:
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_PRIMARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
       --keyFile /etc/security/mongo-keyfile
+      "
     volumes:
       - mongo_primary_data:/data/db
       - mongo_primary_config:/data/configdb
@@ -52,6 +56,9 @@ services:
     ports:
       - "${MONGO_BIND_IP}:${MONGO_SECONDARY1_PORT}:27017"
     command: >
+      sh -c "
+      chmod 600 /etc/security/mongo-keyfile &&
+      chown mongodb:mongodb /etc/security/mongo-keyfile &&
       mongod 
       --replSet ${REPLICA_SET_NAME}
       --bind_ip_all
@@ -59,6 +66,7 @@ services:
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
       --keyFile /etc/security/mongo-keyfile
+      "
     volumes:
       - mongo_secondary1_data:/data/db
       - mongo_secondary1_config:/data/configdb
@@ -99,6 +107,9 @@ services:
     ports:
       - "${MONGO_BIND_IP}:${MONGO_SECONDARY2_PORT}:27017"
     command: >
+      sh -c "
+      chmod 600 /etc/security/mongo-keyfile &&
+      chown mongodb:mongodb /etc/security/mongo-keyfile &&
       mongod 
       --replSet ${REPLICA_SET_NAME}
       --bind_ip_all
@@ -106,6 +117,7 @@ services:
       --wiredTigerCacheSizeGB=${MONGO_CACHE_SIZE_GB_SECONDARY}
       --oplogSize ${MONGO_OPLOG_SIZE_MB}
       --keyFile /etc/security/mongo-keyfile
+      "
     volumes:
       - mongo_secondary2_data:/data/db
       - mongo_secondary2_config:/data/configdb
