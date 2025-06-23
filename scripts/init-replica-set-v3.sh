@@ -134,25 +134,21 @@ if (attempts >= maxAttempts) {
 
 // 创建管理员用户
 print("👤 创建管理员用户...");
-var adminUser = "$MONGO_ROOT_USER";
-var adminPassword = "$MONGO_ROOT_PASSWORD";
-
 try {
     use admin;
     db.createUser({
-        user: adminUser,
-        pwd: adminPassword,
+        user: '$MONGO_ROOT_USER',
+        pwd: '$MONGO_ROOT_PASSWORD',
         roles: [
-            { role: "root", db: "admin" }
+            { role: 'root', db: 'admin' }
         ]
     });
-    print("✅ 管理员用户创建成功");
+    print('✅ 管理员用户创建成功');
 } catch (e) {
     if (e.code === 51003) {
-        print("⚠️  管理员用户已存在");
+        print('⚠️  管理员用户已存在');
     } else {
-        print("❌ 创建管理员用户失败:", e.message);
-        // 不要退出，继续执行
+        print('❌ 创建管理员用户失败:', e.message);
     }
 }
 
