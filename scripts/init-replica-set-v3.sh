@@ -198,7 +198,7 @@ var readonlyUser = "$MONGO_READONLY_USER";
 var readonlyPassword = "$MONGO_READONLY_PASSWORD";
 
 // 切换到应用数据库
-use(appDatabase);
+db = db.getSiblingDB(appDatabase);
 
 print("📝 创建应用用户: " + appUser);
 
