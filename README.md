@@ -115,6 +115,27 @@ mongodb://appuser:app_password@localhost:27017/myapp?replicaSet=rs0
 mongodb://readonly:readonly_password@localhost:27017/myapp?replicaSet=rs0
 ```
 
+### 🖥️ 外部/宿主机 hosts 配置（可选）
+
+副本集内部通过 Docker 网络 DNS 使用 `mongo-primary`、`mongo-secondary1`、`mongo-secondary2` 互联。如果要在 **宿主机或其它外部机器** 使用包含这些名字的连接串（从而获得自动故障转移能力），需先映射主机名：
+
+```bash
+# 若集群部署在本机，写入 /etc/hosts：
+127.0.0.1  mongo-primary mongo-secondary1 mongo-secondary2
+
+# 若部署在远程服务器 192.168.1.100：
+192.168.1.100  mongo-primary mongo-secondary1 mongo-secondary2
+```
+
+完成后即可使用副本集原生连接串，例如：
+
+```bash
+mongodb://appuser:<password>@mongo-primary:27017,mongo-secondary1:27017,mongo-secondary2:27017/myapp?replicaSet=rs0
+```
+
+> 如果不想修改 hosts，也可以使用 `localhost:27017,27018,27019` 并加 `directConnection=true`，
+> 但这将放弃故障转移能力，仅适合开发环境。
+
 ## 📦 备份管理
 
 ### 备份策略（无常驻容器）
