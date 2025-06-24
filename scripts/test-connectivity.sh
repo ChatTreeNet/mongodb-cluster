@@ -37,6 +37,11 @@ REPLICA_SET=${REPLICA_SET_NAME:-rs0}
 ROOT_USER=${MONGO_ROOT_USER:-admin}
 ROOT_PWD=${MONGO_ROOT_PASSWORD:-password}
 
+# 新增：应用用户信息
+APP_USER=${MONGO_APP_USER:-appuser}
+APP_PWD=${MONGO_APP_PASSWORD:-apppassword}
+APP_DB=${MONGO_APP_DATABASE:-myapp}
+
 PRIMARY_PORT=${MONGO_PRIMARY_PORT:-27017}
 S1_PORT=${MONGO_SECONDARY1_PORT:-27018}
 S2_PORT=${MONGO_SECONDARY2_PORT:-27019}
@@ -93,17 +98,33 @@ ping_node "$HOST_SECONDARY1" "Secondary1" 0
 ping_node "$HOST_SECONDARY2" "Secondary2" 0
 
 # --------------------------------------------------
-# (2) 认证模式 ping —— 初始化后
+# (2) 认证模式 ping —— 初始化后 (管理员)
 # --------------------------------------------------
-printf "\n(2) 认证模式 ping\n"
+printf "\n(2) 认证模式 ping (admin)\n"
 ping_node "$HOST_PRIMARY"   "Primary"    1
 ping_node "$HOST_SECONDARY1" "Secondary1" 1
 ping_node "$HOST_SECONDARY2" "Secondary2" 1
 
 # --------------------------------------------------
-# (3) rs.status() 简要检测
+# (3) 应用用户 ping & 权限验证
 # --------------------------------------------------
-printf "\n(3) 副本集状态\n"
+printf "\n(3) 应用用户 ($APP_USER) 认证 & 读写测试\n"
+
+# 连接并写入/读取简单文档来验证读写权限
+TEST_OUT=$($MONGO_BIN --host "$HOST_PRIMARY" -u "$APP_USER" -p "$APP_PWD" --authenticationDatabase "$APP_DB" --quiet --eval "\
+try{db=db.getSiblingDB('$APP_DB');db.test_conn.insertOne({ok:true,t:new Date()});var doc=db.test_conn.findOne({ok:true});printjson({inserted:!!doc});}catch(e){printjson({error:e.message});}\
+" || true)
+
+if echo "$TEST_OUT" | grep -q '"inserted"' ; then
+  log_ok "appuser 读写测试通过"
+else
+  log_error "appuser 认证/权限失败: $TEST_OUT"
+fi
+
+# --------------------------------------------------
+# (4) rs.status() 简要检测
+# --------------------------------------------------
+printf "\n(4) 副本集状态\n"
 OUTPUT=$($MONGO_BIN --host "$HOST_PRIMARY" -u "$ROOT_USER" -p "$ROOT_PWD" --authenticationDatabase admin --quiet --eval "try{var s=rs.status();printjson({set:s.set,primary:s.members.filter(function(m){return m.state===1;})[0].name,health:s.members.map(function(m){return {name:m.name,health:m.health,state:m.stateStr};})});}catch(e){printjson({error:e.message});}") || true
 
 if echo "$OUTPUT" | grep -q '"error"'; then

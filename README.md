@@ -122,7 +122,7 @@ mongodb://readonly:readonly_password@localhost:27017/myapp?replicaSet=rs0
 
 1. **自动备份**  
     在 1Panel 「计划任务」中新建 Cron（如每天 02:00）：
-    ```bash
+```bash
     cd /root/mongodb-cluster && ./scripts/backup.sh
     ```
     - `.env` 中的 `BACKUP_SCHEDULE` 保留给其它环境，可忽略。
@@ -134,7 +134,7 @@ mongodb://readonly:readonly_password@localhost:27017/myapp?replicaSet=rs0
 
 2. **手动备份**  
     随时 SSH 执行：
-    ```bash
+```bash
     ./scripts/manual-backup.sh   # 或直接 ./scripts/backup.sh
     ```
     生成的备份位于 `./backups/YYYYMMDD_HHMMSS(.tar.gz)`。
