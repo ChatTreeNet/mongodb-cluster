@@ -547,9 +547,9 @@ main() {
     log "🚀 开始 MongoDB 备份流程"
     log "备份ID: $DATE"
     
-    # 检查副本集状态并选择备份源
+    # 检查副本集状态并选择备份源（只取最后一行返回值）
     local backup_host
-    backup_host=$(check_replica_status)
+    backup_host=$(check_replica_status | tail -n 1 | tr -d '\r\n')
     log_info "选择备份源: $backup_host"
     
     # 执行备份
