@@ -24,8 +24,11 @@ BUCKET_PATH_PREFIX=${BUCKET_PATH_PREFIX:-mongodb-cluster}
 BUCKET_USE_SSL=${BUCKET_USE_SSL:-true}
 BUCKET_FORCE_PATH_STYLE=${BUCKET_FORCE_PATH_STYLE:-false}
 
+# 项目根目录
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
 # 备份配置
-BACKUP_BASE_DIR="/backup"
+BACKUP_BASE_DIR="${PROJECT_ROOT}/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="${BACKUP_BASE_DIR}/${DATE}"
 LOG_FILE="${BACKUP_BASE_DIR}/backup.log"
@@ -105,16 +108,19 @@ perform_backup() {
     log_info "  - 1Panel集成: $ONEPANEL_BACKUP_ENABLED"
     
     # 执行mongodump
-    log_info "开始数据库转储..."
-    if mongodump \
+    log_info "开始数据库转储 (docker exec $backup_host)..."
+
+    # 在对应容器内执行 mongodump，将数据直接输出到容器中的 /backup 目录，
+    # 该目录已经通过 docker-compose.yml 挂载到宿主机的 ${BACKUP_BASE_DIR}。
+    if docker exec "$backup_host" mongodump \
         --host "$backup_host:27017" \
         --username "$MONGO_ROOT_USER" \
         --password "$MONGO_ROOT_PASSWORD" \
         --authenticationDatabase admin \
-        --out "$BACKUP_DIR" \
-        --gzip \
-        --verbose >> "$LOG_FILE" 2>&1; then
+        --out "/backup/$DATE" \
+        --gzip >> "$LOG_FILE" 2>&1; then
         
+        # docker exec 成功后，备份数据已在宿主机 ${BACKUP_DIR}
         local backup_end_time=$(date +%s)
         local backup_duration=$((backup_end_time - backup_start_time))
         
