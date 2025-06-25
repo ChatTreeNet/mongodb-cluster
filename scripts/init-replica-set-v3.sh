@@ -250,29 +250,6 @@ try {
     }
 }
 
-// 创建示例集合和数据
-print("📚 创建示例集合...");
-db.users.insertOne({
-    name: "示例用户",
-    email: "example@domain.com",
-    createdAt: new Date(),
-    status: "active"
-});
-
-db.settings.insertOne({
-    appName: appDatabase,
-    version: "1.0.0",
-    initializedAt: new Date(),
-    replicaSet: "$REPLICA_SET_NAME"
-});
-
-print("✅ 示例数据创建完成");
-
-// 创建索引
-print("🔍 创建索引...");
-db.users.createIndex({ email: 1 }, { unique: true });
-db.users.createIndex({ status: 1 });
-db.users.createIndex({ createdAt: 1 });
 
 print("✅ 索引创建完成");
 
