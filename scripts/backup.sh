@@ -2,7 +2,26 @@
 # MongoDB 自动备份脚本
 # 支持1Panel集成和多种存储方式
 
+# 遇到错误立刻退出
 set -e
+
+#--------------------------------------------------
+# 载入环境变量（优先顺序：宿主环境 > .env 文件 > 默认值）
+#--------------------------------------------------
+
+# 项目根目录（在文件顶部已经定义 PROJECT_ROOT，但此时尚未创建；故提前计算）
+PROJECT_ROOT_TMP="$(cd "$(dirname "$0")/.." && pwd)"
+
+# 如果项目根目录下存在 .env 文件则自动加载
+if [ -f "$PROJECT_ROOT_TMP/.env" ]; then
+  # shellcheck disable=SC2163,SC1090
+  set -o allexport
+  source "$PROJECT_ROOT_TMP/.env"
+  set +o allexport
+fi
+# 之后再定义正式的变量
+
+PROJECT_ROOT="$PROJECT_ROOT_TMP"
 
 # 从环境变量获取配置
 MONGO_ROOT_USER=${MONGO_ROOT_USER:-admin}
@@ -23,9 +42,6 @@ BUCKET_SECRET_KEY=${BUCKET_SECRET_KEY:-}
 BUCKET_PATH_PREFIX=${BUCKET_PATH_PREFIX:-mongodb-cluster}
 BUCKET_USE_SSL=${BUCKET_USE_SSL:-true}
 BUCKET_FORCE_PATH_STYLE=${BUCKET_FORCE_PATH_STYLE:-false}
-
-# 项目根目录
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # 备份配置
 BACKUP_BASE_DIR="${PROJECT_ROOT}/backups"
